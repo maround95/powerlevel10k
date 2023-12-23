@@ -4665,11 +4665,15 @@ _p9k_gcloud_prefetch() {
   (( $+commands[gcloud] )) || return
   _p9k_read_word ${CLOUDSDK_CONFIG:-~/.config/gcloud}/active_config || return
   P9K_GCLOUD_CONFIGURATION=$_p9k__ret
-  if ! _p9k_cache_stat_get $0 ${CLOUDSDK_CONFIG:-~/.config/gcloud}/configurations/config_$P9K_GCLOUD_CONFIGURATION; then
-    local pair account project_id
-    pair="$(gcloud config configurations describe $P9K_GCLOUD_CONFIGURATION \
-      --format=$'value[separator="\1"](properties.core.account,properties.core.project)')"
-    (( ! $? )) && IFS=$'\1' read account project_id <<<$pair
+  P9K_GCLOUD_CONFIG_FILE_PATH=${CLOUDSDK_CONFIG:-~/.config/gcloud}/configurations/config_$P9K_GCLOUD_CONFIGURATION
+  if ! _p9k_cache_stat_get $0 $P9K_GCLOUD_CONFIG_FILE_PATH; then
+    local account project_id
+    while IFS=' = ' read -r key value; do
+      case "$key" in
+        account) account=$value;;
+        project) project_id=$value;;
+      esac
+    done < $P9K_GCLOUD_CONFIG_FILE_PATH
     _p9k_cache_stat_set "$account" "$project_id"
   fi
   if [[ -n $_p9k__cache_val[1] ]]; then
